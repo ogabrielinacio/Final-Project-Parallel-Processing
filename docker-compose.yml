@@ -1,0 +1,66 @@
+services:
+  mpi-node-1:
+    build: .
+    cpuset: "0"
+    volumes:
+      - shared-volume:/app
+    networks:
+      mpi-network:
+        ipv4_address: 172.21.0.2
+    extra_hosts:
+      mpi-node-1: 172.21.0.2
+      mpi-node-2: 172.21.0.3
+      mpi-node-3: 172.21.0.4
+      mpi-node-4: 172.21.0.5
+
+  mpi-node-2:
+    build: .
+    cpuset: "1"
+    volumes:
+      - shared-volume:/app
+    networks:
+      mpi-network:
+        ipv4_address: 172.21.0.3
+    extra_hosts:
+      mpi-node-1: 172.21.0.2
+      mpi-node-2: 172.21.0.3
+      mpi-node-3: 172.21.0.4
+      mpi-node-4: 172.21.0.5
+
+  mpi-node-3:
+    build: .
+    cpuset: "2"
+    volumes:
+      - shared-volume:/app
+    networks:
+      mpi-network:
+        ipv4_address: 172.21.0.4
+    extra_hosts:
+      mpi-node-1: 172.21.0.2
+      mpi-node-2: 172.21.0.3
+      mpi-node-3: 172.21.0.4
+      mpi-node-4: 172.21.0.5
+
+  mpi-node-4:
+    build: .
+    cpuset: "3"
+    volumes:
+      - shared-volume:/app
+    networks:
+      mpi-network:
+        ipv4_address: 172.21.0.5
+    extra_hosts:
+      mpi-node-1: 172.21.0.2
+      mpi-node-2: 172.21.0.3
+      mpi-node-3: 172.21.0.4
+      mpi-node-4: 172.21.0.5
+
+volumes:
+  shared-volume:
+
+networks:
+  mpi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
