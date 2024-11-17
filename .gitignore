@@ -1,1 +1,8 @@
 id_rsa*
+*.o
+*.out
+*.bin
+results/
+generate_array
+sequencial-mergesort
+mergesort

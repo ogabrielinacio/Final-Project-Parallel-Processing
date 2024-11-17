@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -42,7 +43,6 @@ void merge(int arr[], int left, int mid, int right) {
     free(R);
 }
 
-// Função recursiva do Merge Sort
 void mergeSort(int arr[], int left, int right) {
     if (left < right) {
         int mid = left + (right - left) / 2;
@@ -60,15 +60,38 @@ void printArray(int arr[], int size) {
 }
 
 int main() {
-    int arr[] = {12, 11, 13, 5, 6, 7};
-    int arr_size = sizeof(arr) / sizeof(arr[0]);
 
-    printf("Array original: \n");
+    FILE *file = fopen("random_numbers.bin", "rb");
+    if (!file) {
+        printf("Error opening random_numbers.bin file\n");
+        return 1;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long  file_size = ftell(file);
+    size_t arr_size = file_size / sizeof(int);
+    fseek(file, 0, SEEK_SET);
+
+    int *arr = (int *)malloc(file_size);
+    if (!arr) {
+        printf("Error allocating memory\n");
+        fclose(file);
+        return 1;
+    }
+
+    fread(arr, sizeof(int), arr_size, file);
+    fclose(file);
+
+    printf("Original Array: \n");
     printArray(arr, arr_size);
+
+    printf("\n\n");
+    printf("EOF");
+    printf("\n\n");
 
     mergeSort(arr, 0, arr_size - 1);
 
-    printf("\nArray ordenado: \n");
+    printf("\nOrdened Array: \n");
     printArray(arr, arr_size);
     return 0;
 }
