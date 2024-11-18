@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-# ARRAY=(1000 10000 100000 1000000 10000000 100000000)
-
-ARRAY=(1000 10000 100000 1000000)
+ARRAY=(10 100 1000 10000 100000 1000000 5000000 10000000 50000000 100000000)
 
 if [ ${#ARRAY[@]} -eq 0 ]; then
     echo "Error: ARRAY is empty"
@@ -42,19 +40,22 @@ for ARRAY_VALUE in "${ARRAY[@]}"; do
     real_time=$(grep real temp_time.txt | awk '{print $2}')
     user_time=$(grep user temp_time.txt | awk '{print $2}')
     sys_time=$(grep sys temp_time.txt | awk '{print $2}')
-    echo "ARRAY_VALUE=$ARRAY_VALUE: real=$real_time, user=$user_time, sys=$sys_time" >> results/time.txt
+	echo "ARRAY_VALUE=$ARRAY_VALUE: real=$real_time, user=$user_time, sys=$sys_time" >> fix_time.txt
 
-    echo "Processing output into separate files..."
-    awk -v value="$ARRAY_VALUE" '
-    /EOF/ { found_eof = 1; next }
-    !found_eof { print > "results/non_ordered_array_" value ".txt"; next }
-    found_eof { print > "results/ordered_array_" value ".txt" }
-    ' temp_output.txt
+       echo "Processing output into separate files..."
+       awk -v value="$ARRAY_VALUE" '
+       /EOF/ { found_eof = 1; next }
+       !found_eof { print > "results/non_ordered_array_" value ".txt"; next }
+       found_eof { print > "results/ordered_array_" value ".txt" }
+       ' temp_output.txt
 
-    rm temp_time.txt
-    rm temp_output.txt
+       rm temp_time.txt
+       rm temp_output.txt
 
-    echo "Outputs saved to non_ordered_array_$ARRAY_VALUE.txt and ordered_array_$ARRAY_VALUE.txt"
-done
+       echo "Outputs saved to non_ordered_array_$ARRAY_VALUE.txt and ordered_array_$ARRAY_VALUE.txt"
+   done
+    awk 'NR % 3 == 1 { printf "%s ", $0; next } NR % 3 == 0 { print $0 } NR % 3 == 2 { printf "%s ", $0 }' fix_time.txt > results/time.txt
 
-echo "All values processed successfully."
+    rm fix_time.txt
+
+   echo "All values processed successfully."
