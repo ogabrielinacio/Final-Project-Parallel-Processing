@@ -2,31 +2,51 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define CHUNK_SIZE 10000000
+
 int main()
 {
-    int *data = (int *)malloc(ARRAY_VALUE * sizeof(int));
-    if (!data) {
-        printf("Error allocating memory\n");
+    FILE *fp = fopen("random_numbers.bin", "wb");
+    if (!fp) {
+        printf("Error opening random_numbers.bin file\n");
         return 1;
     }
 
     srand(time(NULL));
 
-    for (int i = 0; i < ARRAY_VALUE; i++) {
-        data[i] = rand();
-    }
+    for (int chunk = 0; chunk < ARRAY_VALUE / CHUNK_SIZE; chunk++) {
+        int *data = (int *)malloc(CHUNK_SIZE * sizeof(int));
+        if (!data) {
+            printf("Error allocating memory\n");
+            fclose(fp);
+            return 1;
+        }
 
-    FILE *fp = fopen("random_numbers.bin", "wb");
-    if (!fp) {
-        printf("Error opening random_numbers.bin file\n");
+        for (int i = 0; i < CHUNK_SIZE; i++) {
+            data[i] = rand();
+        }
+
+        fwrite(data, sizeof(int), CHUNK_SIZE, fp);
         free(data);
-        return 1;
     }
 
-    fwrite(data, sizeof(int), ARRAY_VALUE, fp);
+    int remainder = ARRAY_VALUE % CHUNK_SIZE;
+    if (remainder > 0) {
+        int *data = (int *)malloc(remainder * sizeof(int));
+        if (!data) {
+            printf("Error allocating memory for remainder\n");
+            fclose(fp);
+            return 1;
+        }
+
+        for (int i = 0; i < remainder; i++) {
+            data[i] = rand();
+        }
+
+        fwrite(data, sizeof(int), remainder, fp);
+        free(data);
+    }
 
     fclose(fp);
-    free(data);
-
     return 0;
 }

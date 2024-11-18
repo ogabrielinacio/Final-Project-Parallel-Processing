@@ -1,97 +1,97 @@
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-void merge(int arr[], int left, int mid, int right) {
-    int n1 = mid - left + 1;
-    int n2 = right - mid;
-    int* L = (int*)malloc(n1 * sizeof(int));
-    int* R = (int*)malloc(n2 * sizeof(int));
+void merge(int* arr, int* temp, size_t left, size_t mid, size_t right) {
+    size_t i = left, j = mid + 1, k = left;
 
-    for (int i = 0; i < n1; i++) {
-        L[i] = arr[left + i];
-    }
-    for (int j = 0; j < n2; j++) {
-        R[j] = arr[mid + 1 + j];
-    }
-
-    int i = 0, j = 0, k = left;
-    while (i < n1 && j < n2) {
-        if (L[i] <= R[j]) {
-            arr[k] = L[i];
-            i++;
+    while (i <= mid && j <= right) {
+        if (arr[i] <= arr[j]) {
+            temp[k++] = arr[i++];
         } else {
-            arr[k] = R[j];
-            j++;
+            temp[k++] = arr[j++];
         }
-        k++;
     }
 
-    while (i < n1) {
-        arr[k] = L[i];
-        i++;
-        k++;
+    while (i <= mid) {
+        temp[k++] = arr[i++];
     }
 
-    while (j < n2) {
-        arr[k] = R[j];
-        j++;
-        k++;
+    while (j <= right) {
+        temp[k++] = arr[j++];
     }
 
-    free(L);
-    free(R);
+    for (i = left; i <= right; i++) {
+        arr[i] = temp[i];
+    }
 }
 
-void mergeSort(int arr[], int left, int right) {
+void mergeSort(int* arr, int* temp, size_t left, size_t right) {
     if (left < right) {
-        int mid = left + (right - left) / 2;
-        mergeSort(arr, left, mid);
-        mergeSort(arr, mid + 1, right);
-        merge(arr, left, mid, right);
+        size_t mid = left + (right - left) / 2;
+
+        mergeSort(arr, temp, left, mid);
+        mergeSort(arr, temp, mid + 1, right);
+        merge(arr, temp, left, mid, right);
     }
 }
 
-void printArray(int arr[], int size) {
-    for (int i = 0; i < size; i++) {
-        printf("%d ", arr[i]);
+void chunkedMergeSort(FILE* inputFile, size_t chunkSize) {
+    size_t totalElements = 0;
+    fseek(inputFile, 0, SEEK_END);
+    totalElements = ftell(inputFile) / sizeof(int);
+    rewind(inputFile);
+
+    int* chunk = (int*)malloc(chunkSize * sizeof(int));
+    int* temp = (int*)malloc(chunkSize * sizeof(int));
+    if (!chunk || !temp) {
+        printf("Error allocating memory for chunks.\n");
+        fclose(inputFile);
+        free(chunk);
+        free(temp);
+        return;
     }
-    printf("\n");
+
+    size_t elementsRead = 0;
+    size_t totalRead = 0;
+
+    while ((elementsRead = fread(chunk, sizeof(int), chunkSize, inputFile)) > 0) {
+        mergeSort(chunk, temp, 0, elementsRead - 1);
+        totalRead += elementsRead;
+
+        // Print sorted chunk to the screen
+        printf("\nOrdened Array: ");
+        for (size_t i = 0; i < elementsRead; i++) {
+            printf("%d ", chunk[i]);
+        }
+        printf("\n");
+    }
+
+    free(chunk);
+    free(temp);
 }
 
 int main() {
-
     FILE *file = fopen("random_numbers.bin", "rb");
     if (!file) {
         printf("Error opening random_numbers.bin file\n");
-        return 1;
     }
 
-    fseek(file, 0, SEEK_END);
-    long  file_size = ftell(file);
-    size_t arr_size = file_size / sizeof(int);
-    fseek(file, 0, SEEK_SET);
+    int number;
 
-    int *arr = (int *)malloc(file_size);
-    if (!arr) {
-        printf("Error allocating memory\n");
-        fclose(file);
-        return 1;
+    printf("Original Array: ");
+    while (fread(&number, sizeof(int), 1, file) == 1) {
+        printf("%d ", number);
     }
-
-    fread(arr, sizeof(int), arr_size, file);
-    fclose(file);
-
-    printf("Original Array: \n");
-    printArray(arr, arr_size);
 
     printf("\n\n");
     printf("EOF");
     printf("\n\n");
 
-    mergeSort(arr, 0, arr_size - 1);
+    size_t chunkSize = 1000000;
+    chunkedMergeSort(file, chunkSize);
 
-    printf("\nOrdened Array: \n");
-    printArray(arr, arr_size);
+    fclose(file);
+
     return 0;
 }
