@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ARRAY=(10 100 1000 10000 100000 1000000 5000000 10000000 50000000 100000000)
+ARRAY=(10 100 1000 10000 25000 50000 75000 100000 1000000 5000000 10000000 50000000)
 
 if [ ${#ARRAY[@]} -eq 0 ]; then
     echo "Error: ARRAY is empty"
@@ -35,7 +35,7 @@ for ARRAY_VALUE in "${ARRAY[@]}"; do
     fi
 
     echo "Running distributed-mergesort..."
-    { time mpirun --mca btl tcp,self --host mpi-node-1,mpi-node-2,mpi-node-3,mpi-node-4 -np 4 mergesort  > temp_output.txt; } 2> temp_time.txt
+    { time mpirun  --allow-run-as-root --mca btl tcp,self --host mpi-node-1,mpi-node-2,mpi-node-3,mpi-node-4 -np 4 mergesort  > temp_output.txt; } 2> temp_time.txt
 
     real_time=$(grep real temp_time.txt | awk '{print $2}')
     user_time=$(grep user temp_time.txt | awk '{print $2}')

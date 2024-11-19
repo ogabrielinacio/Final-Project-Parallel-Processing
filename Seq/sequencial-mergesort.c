@@ -59,7 +59,6 @@ void chunkedMergeSort(FILE* inputFile, size_t chunkSize) {
         mergeSort(chunk, temp, 0, elementsRead - 1);
         totalRead += elementsRead;
 
-        // Print sorted chunk to the screen
         printf("\nOrdened Array: ");
         for (size_t i = 0; i < elementsRead; i++) {
             printf("%d ", chunk[i]);

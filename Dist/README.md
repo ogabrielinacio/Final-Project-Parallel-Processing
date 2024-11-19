@@ -36,7 +36,7 @@ Launch the containers in detached mode:
 4. **Run Initialization Scripts**
 Execute the initialization script to configure SSH and prepare the environment:
     ```bash
-    ./exec-script-docker.sh
+    ./exec-docker-script.sh
     ```
 
 5. **Access the Primary Node**
