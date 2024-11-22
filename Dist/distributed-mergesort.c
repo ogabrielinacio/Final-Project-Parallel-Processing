@@ -64,6 +64,15 @@ int main(int argc, char **argv)
         array = (int *)malloc(file_size);
         fread(array, sizeof(int), array_length, file);
         fclose(file);
+
+        printf("Original Array: ");
+        for (int i = 0; i < array_length; i++)
+        {
+            printf("%d ", array[i]);
+        }
+        printf("\n\n");
+        printf("EOF");
+        printf("\n\n");
     }
 
     MPI_Bcast(&array_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
