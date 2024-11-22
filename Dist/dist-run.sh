@@ -40,7 +40,7 @@ for ARRAY_VALUE in "${ARRAY[@]}"; do
     real_time=$(grep real temp_time.txt | awk '{print $2}')
     user_time=$(grep user temp_time.txt | awk '{print $2}')
     sys_time=$(grep sys temp_time.txt | awk '{print $2}')
-	echo "ARRAY_VALUE=$ARRAY_VALUE: real=$real_time, user=$user_time, sys=$sys_time" >> fix_time.txt
+	echo "ARRAY_VALUE=$ARRAY_VALUE: real=$real_time, user=$user_time, sys=$sys_time" >> results/time.txt
 
        echo "Processing output into separate files..."
        awk -v value="$ARRAY_VALUE" '
@@ -54,8 +54,5 @@ for ARRAY_VALUE in "${ARRAY[@]}"; do
 
        echo "Outputs saved to non_ordered_array_$ARRAY_VALUE.txt and ordered_array_$ARRAY_VALUE.txt"
    done
-    awk 'NR % 3 == 1 { printf "%s ", $0; next } NR % 3 == 0 { print $0 } NR % 3 == 2 { printf "%s ", $0 }' fix_time.txt > results/time.txt
-
-    rm fix_time.txt
 
    echo "All values processed successfully."
