@@ -2,79 +2,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void merge(int* arr, int start, int mid, int end) {
-    int n1 = mid - start + 1;
-    int n2 = end - mid;
-    int* left = (int*)malloc(n1 * sizeof(int));
-    int* right = (int*)malloc(n2 * sizeof(int));
-
-    for (int i = 0; i < n1; i++) left[i] = arr[start + i];
-    for (int i = 0; i < n2; i++) right[i] = arr[mid + 1 + i];
-
-    int i = 0, j = 0, k = start;
-    while (i < n1 && j < n2) {
-        if (left[i] <= right[j])
-            arr[k++] = left[i++];
-        else
-            arr[k++] = right[j++];
+void merge(int* arr, int* left, int left_count, int* right, int right_count) {
+    int i=0, j=0, k=0;
+    while(i<left_count && j<right_count) {
+        if(left[i] < right[j]) arr[k++] = left[i++];
+        else arr[k++] = right[j++];
     }
+    while(i < left_count) arr[k++] = left[i++];
+    while(j < right_count) arr[k++] = right[j++];
+}
 
-    while (i < n1) arr[k++] = left[i++];
-    while (j < n2) arr[k++] = right[j++];
+void mergesort(int *arr, int n)
+{
+    if(n < 2) return;
+
+    int mid = n / 2;
+    int *left = (int*)malloc(mid * sizeof(int));
+    int *right = (int*)malloc((n - mid) * sizeof(int));
+
+    for(int i = 0; i < mid; i++) left[i] = arr[i];
+    for(int i = mid; i < n; i++) right[i - mid] = arr[i];
+
+    mergesort(left, mid);
+    mergesort(right, n - mid);
+    merge(arr, left, mid, right, n - mid);
 
     free(left);
     free(right);
 }
 
-int* merge_local(int* arr1, int n1, int* arr2, int n2) {
-    int* result = (int*)malloc((n1 + n2) * sizeof(int));
-    int i = 0, j = 0, k;
-    for (k = 0; k < n1 + n2; k++) {
-        if (i >= n1) {
-            result[k] = arr2[j++];
-        } else if (j >= n2) {
-            result[k] = arr1[i++];
-        } else if (arr1[i] < arr2[j]) {
-            result[k] = arr1[i++];
-        } else {
-            result[k] = arr2[j++];
-        }
-    }
-    return result;
-}
-
-void mergesort(int *arr, int start, int end)
-{
-    if (start < end)
-    {
-        int mid = start + (end - start) / 2;
-        mergesort(arr, start, mid);
-        mergesort(arr, mid + 1, end);
-        merge(arr, start, mid, end);
-    }
-}
-
 int main(int argc, char **argv)
 {
+    int *array = NULL;
     int array_length;
-    int* array = NULL;
-    int chunk_size, own_chunk_size;
-    int* chunk;
-    double time_taken;
-    MPI_Status status;
+    int *local_array;
+    int local_size;
+    int *counts;
+    int *displs;
+    double start_time, end_time;
 
-    int number_of_process, rank_of_process;
-    int rc = MPI_Init(&argc, &argv);
+    MPI_Init(&argc, &argv);
 
-    if (rc != MPI_SUCCESS) {
-        MPI_Abort(MPI_COMM_WORLD, rc);
-    }
-
+    int number_of_process, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &number_of_process);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank_of_process);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-
-    if (rank_of_process == 0)
+    if(rank == 0)
     {
         FILE *file = fopen("random_numbers.bin", "rb");
         if (!file)
@@ -91,84 +64,73 @@ int main(int argc, char **argv)
         array = (int *)malloc(file_size);
         fread(array, sizeof(int), array_length, file);
         fclose(file);
-
-        printf("Original Array: ");
-        for (int i = 0; i < array_length; i++)
-        {
-            printf("%d ", array[i]);
-        }
-        printf("\n\n");
-        printf("EOF");
-        printf("\n\n");
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    time_taken = -MPI_Wtime();
 
     MPI_Bcast(&array_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    chunk_size = (array_length + number_of_process - 1) / number_of_process;
+    counts = (int*)malloc(number_of_process * sizeof(int));
+    displs = (int*)malloc(number_of_process * sizeof(int));
 
-    chunk = (int *)malloc(chunk_size * sizeof(int));
+    int base_size = array_length / number_of_process;
+    int extra = array_length % number_of_process;
 
-    MPI_Scatter(array, chunk_size, MPI_INT, chunk, chunk_size, MPI_INT, 0, MPI_COMM_WORLD);
-
-    if (rank_of_process == 0) {
-        free(array);
+    for(int i = 0; i < number_of_process; i++) {
+        counts[i] = base_size + (i < extra ? 1 : 0);
+        displs[i] = i > 0 ? displs[i-1] + counts[i-1] : 0;
     }
 
-    int base_chunk_size = array_length / number_of_process;
-    int remainder = array_length % number_of_process;
-    if (rank_of_process < remainder) {
-        own_chunk_size = base_chunk_size + 1;
-    } else {
-        own_chunk_size = base_chunk_size;
-    }
+    local_size = counts[rank];
+    local_array = (int*)malloc(local_size * sizeof(int));
 
+    MPI_Scatterv(array, counts, displs, MPI_INT, local_array, local_size, MPI_INT, 0, MPI_COMM_WORLD);
 
-    mergesort(chunk, 0, own_chunk_size - 1);
+    if(rank == 0) free(array);
 
+    start_time = MPI_Wtime();
 
-    for (int step = 1; step < number_of_process; step *= 2)
-    {
-        if (rank_of_process % (2 * step) != 0)
-        {
-            MPI_Send(chunk, own_chunk_size, MPI_INT, rank_of_process - step, 0, MPI_COMM_WORLD);
+    mergesort(local_array, local_size);
 
+    int merge_steps = number_of_process;
+    int *recv_array = NULL;
+    int recv_size;
+
+    for(int step = 1; step < number_of_process; step *= 2) {
+        if(rank % (2*step) == 0) {
+            if(rank + step < number_of_process) {
+                MPI_Recv(&recv_size, 1, MPI_INT, rank + step, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                recv_array = (int*)malloc(recv_size * sizeof(int));
+                MPI_Recv(recv_array, recv_size, MPI_INT, rank + step, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+                int *merged_array = (int*)malloc((local_size + recv_size) * sizeof(int));
+                merge(merged_array, local_array, local_size, recv_array, recv_size);
+                free(local_array);
+                free(recv_array);
+                local_array = merged_array;
+                local_size += recv_size;
+            }
+        } else {
+            int dest = rank - step;
+            MPI_Send(&local_size, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+            MPI_Send(local_array, local_size, MPI_INT, dest, 0, MPI_COMM_WORLD);
+            free(local_array);
             break;
         }
-        if (rank_of_process + step < number_of_process)
-        {
-            int received_chunk_size = (array_length >= chunk_size * (rank_of_process + 2 * step)) ? (chunk_size * step) : (array_length - chunk_size * (rank_of_process + step));
-
-
-
-            int* chunk_received = (int*)malloc(received_chunk_size * sizeof(int));
-            MPI_Recv(chunk_received, received_chunk_size, MPI_INT, rank_of_process + step, 0, MPI_COMM_WORLD, &status);
-            array = merge_local(chunk, own_chunk_size, chunk_received, received_chunk_size);
-
-
-
-            free(chunk);
-            free(chunk_received);
-            chunk = array;
-            own_chunk_size += received_chunk_size;
-        }
     }
 
-    time_taken += MPI_Wtime();
+    end_time = MPI_Wtime();
 
-    if (rank_of_process == 0) {
-        printf("\nOrdened Array: ");
-        for (int i = 0; i < array_length; i++) {
-            printf("%d ", chunk[i]);
+    if(rank == 0) {
+        printf("\nOrdened Array:\n");
+        for(int i = 0; i < array_length; i++) {
+            printf("%d ", local_array[i]);
         }
         printf("\n");
-        printf("\n");
-        printf("\nMergeSort %d ints on %d procs: %f secs\n", array_length, number_of_process, time_taken);
-
-        free(chunk);
+        printf("\nTotal time: %f seconds\n", end_time - start_time);
+        free(local_array);
     }
+
+    free(counts);
+    free(displs);
 
     MPI_Finalize();
     return 0;
