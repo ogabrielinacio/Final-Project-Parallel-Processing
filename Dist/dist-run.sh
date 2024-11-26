@@ -35,12 +35,16 @@ for ARRAY_VALUE in "${ARRAY[@]}"; do
     fi
 
     echo "Running distributed-mergesort..."
-    { time mpirun  --allow-run-as-root --mca btl tcp,self --host mpi-node-1,mpi-node-2,mpi-node-3,mpi-node-4 -np 4 mergesort  > temp_output.txt; } 2> temp_time.txt
-
-    real_time=$(grep real temp_time.txt | awk '{print $2}')
-    user_time=$(grep user temp_time.txt | awk '{print $2}')
-    sys_time=$(grep sys temp_time.txt | awk '{print $2}')
-	echo "ARRAY_VALUE=$ARRAY_VALUE: real=$real_time, user=$user_time, sys=$sys_time" >> results/time.txt
+    { 
+        time mpirun --allow-run-as-root --mca btl tcp,self --host mpi-node-1,mpi-node-2,mpi-node-3,mpi-node-4 -np 4 mergesort | 
+         awk -v value="$ARRAY_VALUE" '
+        /^LOG/ { print > "results/log_array_" value ".txt"; next }
+        { print > "temp_output.txt" } '
+    } 2> temp_time.txt
+       real_time=$(grep real temp_time.txt | awk '{print $2}')
+       user_time=$(grep user temp_time.txt | awk '{print $2}')
+       sys_time=$(grep sys temp_time.txt | awk '{print $2}')
+       echo "ARRAY_VALUE=$ARRAY_VALUE: real=$real_time, user=$user_time, sys=$sys_time" >> results/time.txt
 
        echo "Processing output into separate files..."
        awk -v value="$ARRAY_VALUE" '
@@ -52,7 +56,7 @@ for ARRAY_VALUE in "${ARRAY[@]}"; do
        rm temp_time.txt
        rm temp_output.txt
 
-       echo "Outputs saved to non_ordered_array_$ARRAY_VALUE.txt and ordered_array_$ARRAY_VALUE.txt"
+       echo "Outputs saved to non_ordered_array_$ARRAY_VALUE.txt, ordered_array_$ARRAY_VALUE.txt and log_array_$ARRAY_VALUE.txt"
    done
 
    echo "All values processed successfully."
